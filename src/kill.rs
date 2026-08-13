@@ -36,8 +36,22 @@ impl Killer for SystemKiller {
         use sysinfo::{Pid, ProcessesToUpdate, System};
 
         let target = Pid::from_u32(pid);
-        let mut sys = System::new();
-        sys.refresh_processes(ProcessesToUpdate::Some(&[target]), true);
+        let mut sys = System::new_all();
+        sys.refresh_processes(ProcessesToUpdate::All, true);
+
+        // Never let an ambiguous socket-to-pid mapping terminate whatport or
+        // the shell/test runner that launched it. Walk the current process's
+        // ancestor chain before sending a signal.
+        let mut protected = Some(Pid::from_u32(std::process::id()));
+        while let Some(current) = protected {
+            if target == current {
+                return Err(WhatportError::KillFailed {
+                    pid,
+                    message: "refusing to signal whatport or one of its parent processes".into(),
+                });
+            }
+            protected = sys.process(current).and_then(|process| process.parent());
+        }
         let proc = sys
             .process(target)
             .ok_or_else(|| WhatportError::KillFailed {

@@ -48,6 +48,14 @@ pub struct Request {
     pub proto: ProtoFilter,
     pub action: Action,
     pub format: OutputFormat,
+    pub page: Option<Page>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Page {
+    pub limit: usize,
+    pub offset: usize,
+    pub fields: Option<Vec<String>>,
 }
 
 /// The outcome of signalling one pid (one row of the kill summary).
@@ -88,7 +96,17 @@ pub fn run<P: Probe, K: Killer>(
                     proto: req.proto.label(),
                 });
             }
-            Ok(output::render_listeners(&matched, req.format))
+            let total = matched.len();
+            let page = req.page.as_ref();
+            let offset = page.map_or(0, |p| p.offset).min(total);
+            let limit = page.map_or(total, |p| p.limit);
+            let end = offset.saturating_add(limit).min(total);
+            Ok(output::render_listeners(
+                &matched[offset..end],
+                total,
+                page,
+                req.format,
+            ))
         }
         Action::Kill(signal) => {
             let Query::Port(port) = req.query else {

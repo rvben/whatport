@@ -4,7 +4,7 @@
 use std::cell::RefCell;
 
 use whatport::{
-    Action, Killer, Listener, OutputFormat, Proto, ProtoFilter, Query, Request, Signal,
+    Action, Killer, Listener, OutputFormat, Page, Proto, ProtoFilter, Query, Request, Signal,
     SystemProbe, WhatportError, run,
 };
 
@@ -54,6 +54,7 @@ fn req(query: Query, proto: ProtoFilter, action: Action, format: OutputFormat) -
         proto,
         action,
         format,
+        page: None,
     }
 }
 
@@ -98,6 +99,29 @@ fn list_returns_all_listeners() {
     ]);
     let out = run(&probe, &FakeKiller::default(), &inspect(Query::All)).unwrap();
     assert_eq!(json(&out)["listeners"].as_array().unwrap().len(), 2);
+}
+
+#[test]
+fn list_paginates_and_projects_fields() {
+    let probe = FakeProbe(vec![
+        listener(1000, Proto::Tcp, Some(1), "one"),
+        listener(2000, Proto::Tcp, Some(2), "two"),
+        listener(3000, Proto::Tcp, Some(3), "three"),
+    ]);
+    let mut request = inspect(Query::All);
+    request.page = Some(Page {
+        limit: 1,
+        offset: 1,
+        fields: Some(vec!["port".into(), "process".into()]),
+    });
+
+    let value = json(&run(&probe, &FakeKiller::default(), &request).unwrap());
+    assert_eq!(value["total"], 3);
+    assert_eq!(value["offset"], 1);
+    assert_eq!(value["listeners"].as_array().unwrap().len(), 1);
+    assert_eq!(value["listeners"][0]["port"], 2000);
+    assert_eq!(value["listeners"][0]["process"], "two");
+    assert_eq!(value["listeners"][0].as_object().unwrap().len(), 2);
 }
 
 #[test]

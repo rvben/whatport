@@ -48,7 +48,17 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     /// List every listening TCP/UDP socket.
-    List,
+    List {
+        /// Maximum listeners to return.
+        #[arg(long, default_value_t = 100)]
+        limit: usize,
+        /// Number of listeners to skip.
+        #[arg(long, default_value_t = 0)]
+        offset: usize,
+        /// Comma-separated listener fields to include.
+        #[arg(long)]
+        fields: Option<String>,
+    },
     /// Show the listener(s) on a port.
     Inspect {
         #[arg(value_name = "PORT")]
@@ -128,7 +138,7 @@ fn main() -> ExitCode {
             clap_complete::generate(*shell, &mut cmd, name, &mut std::io::stdout());
             return ExitCode::SUCCESS;
         }
-        Some(Command::List) => (Query::All, Action::Inspect),
+        Some(Command::List { .. }) => (Query::All, Action::Inspect),
         Some(Command::Inspect { port }) => (Query::Port(*port), Action::Inspect),
         Some(Command::Kill { port, force }) => (
             Query::Port(*port),
@@ -151,6 +161,24 @@ fn main() -> ExitCode {
         proto: cli.proto.into(),
         action,
         format: cli.output.resolve(),
+        page: match &cli.command {
+            Some(Command::List {
+                limit,
+                offset,
+                fields,
+            }) => Some(whatport::Page {
+                limit: *limit,
+                offset: *offset,
+                fields: fields.as_deref().map(|value| {
+                    value
+                        .split(',')
+                        .map(str::trim)
+                        .map(str::to_string)
+                        .collect()
+                }),
+            }),
+            _ => None,
+        },
     };
 
     match run(&SystemProbe, &SystemKiller, &request) {

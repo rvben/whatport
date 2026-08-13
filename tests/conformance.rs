@@ -1,10 +1,10 @@
-//! `whatport schema` must validate against the published clispec v0.2 JSON
-//! Schema (vendored at schemas/clispec-v0.2.json).
+//! `whatport schema` must validate against the published clispec v0.3 JSON
+//! Schema (vendored at schemas/clispec-v0.3.json).
 
 #[test]
-fn schema_conforms_to_clispec_v0_2() {
+fn schema_conforms_to_clispec_v0_3() {
     let schema: serde_json::Value =
-        serde_json::from_str(include_str!("../schemas/clispec-v0.2.json"))
+        serde_json::from_str(include_str!("../schemas/clispec-v0.3.json"))
             .expect("vendored clispec schema is valid JSON");
 
     let instance = whatport::schema::contract();
@@ -16,7 +16,7 @@ fn schema_conforms_to_clispec_v0_2() {
             .map(|e| format!("{} at {}", e, e.instance_path()))
             .collect();
         panic!(
-            "whatport schema does not conform to clispec v0.2:\n{}",
+            "whatport schema does not conform to clispec v0.3:\n{}",
             errors.join("\n")
         );
     }
@@ -25,16 +25,16 @@ fn schema_conforms_to_clispec_v0_2() {
 #[test]
 fn schema_declares_the_expected_shape() {
     let v = whatport::schema::contract();
-    assert_eq!(v["clispec"], "0.2");
+    assert_eq!(v["clispec"], "0.3");
     assert_eq!(v["name"], "whatport");
 
     let commands = v["commands"].as_array().unwrap();
     // The kill command is the one mutating command; the rest are read-only.
     let kill = commands.iter().find(|c| c["name"] == "kill").unwrap();
-    assert_eq!(kill["mutating"], true);
+    assert_eq!(kill["effects"], "non_idempotent");
     for name in ["list", "inspect", "schema"] {
         let c = commands.iter().find(|c| c["name"] == name).unwrap();
-        assert_eq!(c["mutating"], false, "{name} must be read-only");
+        assert_eq!(c["effects"], "read_only", "{name} must be read-only");
     }
     assert!(v["errors"].as_array().is_some_and(|e| !e.is_empty()));
     assert!(v["global_args"].as_array().is_some_and(|g| !g.is_empty()));

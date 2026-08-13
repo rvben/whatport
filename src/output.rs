@@ -4,13 +4,37 @@
 
 use crate::kill::Signal;
 use crate::model::Listener;
-use crate::{KillResult, OutputFormat};
+use crate::{KillResult, OutputFormat, Page};
 use serde_json::json;
 
 /// Render the matched listeners.
-pub fn render_listeners(listeners: &[Listener], format: OutputFormat) -> String {
+pub fn render_listeners(
+    listeners: &[Listener],
+    total: usize,
+    page: Option<&Page>,
+    format: OutputFormat,
+) -> String {
     match format {
-        OutputFormat::Json => json!({ "listeners": listeners }).to_string(),
+        OutputFormat::Json => {
+            let fields = page.and_then(|page| page.fields.as_ref());
+            let listeners: Vec<serde_json::Value> = listeners
+                .iter()
+                .map(|listener| {
+                    let mut value = serde_json::to_value(listener).expect("listener serializes");
+                    if let (Some(selected), Some(object)) = (fields, value.as_object_mut()) {
+                        object.retain(|name, _| selected.iter().any(|field| field == name));
+                    }
+                    value
+                })
+                .collect();
+            json!({
+                "listeners": listeners,
+                "total": total,
+                "limit": page.map(|p| p.limit),
+                "offset": page.map_or(0, |p| p.offset)
+            })
+            .to_string()
+        }
         OutputFormat::Table => listener_table(listeners),
     }
 }

@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/rvben/whatport/actions/workflows/ci.yml/badge.svg)](https://github.com/rvben/whatport/actions/workflows/ci.yml)
 [![crates.io](https://img.shields.io/crates/v/whatport.svg)](https://crates.io/crates/whatport)
-[![clispec](https://img.shields.io/badge/clispec-v0.2-blue)](https://clispec.dev)
+[![clispec](https://img.shields.io/badge/clispec-v0.3-blue)](https://clispec.dev)
 
 Find what process is listening on a TCP/UDP port, and free it. The fast,
 agent-friendly answer to "what's on :5099?" and "kill whatever it is."
@@ -49,7 +49,7 @@ whatport list --proto udp
 | `whatport <port>` / `inspect <port>` | no | the listener(s) on a port: pid, process, command, user, uptime, address |
 | `list` | no | every listening TCP/UDP socket |
 | `kill <port> [--force]` | **yes** | SIGTERM (or SIGKILL with `--force`) the owner(s); reports what it signalled |
-| `schema` | no | the clispec v0.2 contract as JSON |
+| `schema` | no | the clispec v0.3 contract as JSON |
 | `completions <shell>` | no | shell completion script |
 
 Global flags: `-o`/`--output auto\|json\|text` (auto = text on a TTY, JSON when
@@ -82,7 +82,7 @@ process details) - no shelling out to `lsof`/`ss`.
 
 whatport follows [The CLI Spec](https://clispec.dev): structured output on
 stdout, structured error envelopes on the last line of stderr, and a `schema`
-subcommand whose output validates against `clispec.dev/schema/v0.2.json`
+subcommand whose output validates against `clispec.dev/schema/v0.3.json`
 (checked by the test suite). Read-only commands are `mutating: false`; `kill`
 is the one `mutating: true` command.
 
