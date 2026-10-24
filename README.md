@@ -16,6 +16,14 @@ JSON when piped, a table in a terminal.
 
 ## Install
 
+### Homebrew
+
+```sh
+brew install rvben/tap/whatport
+```
+
+### Other installation methods
+
 ```sh
 cargo install whatport
 ```
